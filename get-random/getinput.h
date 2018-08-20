@@ -9,3 +9,4 @@ enum returnVals {
     TOO_LONG
 };
 int getLine (char *prompt, char *buff, size_t maxInputLength);
+int getInput(char *userInputBuffer, size_t length);

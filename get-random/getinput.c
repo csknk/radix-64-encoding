@@ -1,6 +1,22 @@
-#include "getline.h"
+#include "getinput.h"
 
-int getLine (char *prompt, char *buff, size_t maxInputLength) {
+int getInput(char *userInputBuffer, size_t length)
+{
+    int rc;
+    rc = getLine("Enter string: ", userInputBuffer, length);
+    if (rc == NO_INPUT) {
+        printf ("\nNo input\n");
+        return 1;
+    }
+    if (rc == TOO_LONG) {
+        printf ("Input too long [%s]\n", userInputBuffer);
+        return 1;
+    }
+    return 0;
+}
+
+int getLine(char *prompt, char *buff, size_t maxInputLength)
+{
     int ch, extra;
 
     // Get line with buffer overrun protection.
