@@ -3,72 +3,60 @@
 
 void base64Encode(unsigned char *inputBuffer, unsigned char *b64Buffer, size_t inputLength)
 {
-    size_t b64BufferLength = !(inputLength % 4) ? inputLength : (((inputLength / 4) + 1) * 4);
+    size_t b64BufferLength = lenCharsBase64(inputLength);
 
+    // The first character
+    // -------------------------------------------------------------------------
     unsigned char tmpByte;
     tmpByte = 0;
-    tmpByte = (inputBuffer[0]) & 3;                     // Mask against 00000011
-    size_t lookupVal = (inputBuffer[0] >>= 2) & 63;     // Mask against 00111111 - should be (1 << 5)
-    b64Buffer[0] = encodingTable[lookupVal];            // Mask against 00111111 - should be (1 << 5)
-    size_t divider = 4;                                 // First run: set the divider for next char
+    tmpByte = (inputBuffer[0]) & (0xFF >> 6);                   // Mask against 00000011
+    size_t lookupVal = (inputBuffer[0] >>= 2) & (0xFF >> 2);    // Mask against 00111111
+    b64Buffer[0] = encodingTable[lookupVal];                    // Get the b64 character
+    size_t divider = 4;                                         // First run: set the divider for next char
 
+    // Loop to the penultimate character
+    // The last 2 bits of tmpByte is the last 2 bits of the first char
+    // -------------------------------------------------------------------------
     size_t i = 1;
     size_t bufIndex = 1;
+    while (i <= inputLength) {
+        // Combine current char data with the previous (tmpByte)
+        // ---------------------------------------------------------------------
+        tmpByte <<= divider;                                        // Shift bits from previous iteration to the correct position
+        unsigned char mask = ~(0xFF >> divider);                    // Mask representing the first `divider` bits of a byte
+        unsigned char mostSigBits = inputBuffer[i] & mask;          // Collect the first `divider` bits of the current char
+        mostSigBits >>= (8 - divider);                              // Shift to correct position
+        b64Buffer[bufIndex] = encodingTable[tmpByte ^ mostSigBits]; // Add combined bytes to the return buffer
 
-    // The indexing is not right. Need to step through chars, but have different indexing for output
-    while (i < inputLength) {
-        if (bufIndex > b64BufferLength)
-            break;
-
-        if (i == inputLength) {
-            printf("Last element!!!!\n");
-        }
-
-        tmpByte <<= divider;                                // Last bits from previous iteration. Shift bits: from 0000xxxx to 00xxxx00
-        unsigned char mask = ~(0xFF >> divider);            // Get the required most significant bits from the new char
-        unsigned char mostSigBits = inputBuffer[i] & mask;  // Put these in the position to be combined with the last bits from the previous iteration
-        mostSigBits >>= (8 - divider);
-        b64Buffer[bufIndex] = encodingTable[tmpByte ^ mostSigBits];
-
-        // If the divider is 2, take the next 6 bits from the current char
+        // If the divider == 2, set the last 6 bits as a new radix 64 character
+        // ---------------------------------------------------------------------
         if (divider == 2) {
-            unsigned char mask2 = 0xFF >> divider;
-            tmpByte = 0;
-            b64Buffer[++bufIndex] = encodingTable[inputBuffer[i] & mask2];
-            divider = 0; // get first 6 bits of the next byte
+            b64Buffer[++bufIndex] = encodingTable[(inputBuffer[i] & (0xFF >> divider))];
+            tmpByte = 0; // Don't carry data forward
         } else {
             // mask to get the unused bits from the current character:
             tmpByte = inputBuffer[i] & (0xFF >> divider);
+            bufIndex++;
         }
-        switch (divider) {
-            case 2:
-                divider = 6;
-                break;
-            case 6:
-                divider = 4;
-                break;
-            default:
-                divider = 6 - divider;
-        }
-        bufIndex++;
+
+        // Set divider for the next char
+        // ---------------------------------------------------------------------
+        divider = (divider - 2) ? divider - 2 : 6;
         i++;
-        // last element, an incomplete sextuplet
-        if (i == inputLength && ((inputLength * 8) % 6)) {
-            divider = 2;
-        }
-    }
-    // Figure out how to get teh last char here.
-    // b64Buffer[bufIndex] = 'X';
-    // at this point tmpByte is WRONG @TODO
-    b64Buffer[bufIndex] = encodingTable[tmpByte >> divider];
-    while (i == inputLength && bufIndex < b64BufferLength) {
-        // printf("here bufIndex %lu\n", bufIndex);
-        b64Buffer[++bufIndex] = '=';
     }
     b64Buffer[bufIndex] = '\0';
 }
 
+/**
+ * Calculate the correct total length for a base 64 string
+ */
 size_t lenCharsBase64(size_t inputLength)
 {
-    return inputLength * 2;
+    size_t ret;
+    if (inputLength % 3) {
+        ret = ((inputLength / 3) + 1) * 4;
+    } else {
+        ret = (inputLength / 3) * 4;
+    }
+    return ret;
 }
