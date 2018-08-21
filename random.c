@@ -11,7 +11,7 @@ int generateRandom(unsigned char *buf, size_t length, int printable)
     }
     // printf("Installed: %s\n", outputVersion);
     // unsigned char buf[32];
-    gcry_randomize (buf, length, GCRY_STRONG_RANDOM);
+    // gcry_randomize (buf, length, GCRY_STRONG_RANDOM);
 
     size_t i = 0;
     while (i < length) {
