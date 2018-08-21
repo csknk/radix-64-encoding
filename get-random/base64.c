@@ -6,7 +6,8 @@ void base64Encode(unsigned char *inputBuffer, unsigned char *b64Buffer, size_t i
     size_t b64BufferLength = lenCharsBase64(inputLength);
     printf("This function should output %lu base 64 characters.\n", b64BufferLength);
 
-    // The first character
+    // The first character: mpByte brings data forward to the while loop,
+    // lookupVal gets the first 6 bits of this byte to buuild the first b64 char
     // -------------------------------------------------------------------------
     unsigned char tmpByte;
     tmpByte = 0;
@@ -35,7 +36,7 @@ void base64Encode(unsigned char *inputBuffer, unsigned char *b64Buffer, size_t i
         if (divider == 2) {
             b64Buffer[bufIndex] = encodingTable[(inputBuffer[i] & (0xFF >> divider))];
             bufIndex++;
-            tmpByte = 0; // In this case, don't carry data forward
+            tmpByte = 0; // In this case, there is no data to carry forward
         } else {
             // Carry forward the unused bits from the current character
             tmpByte = inputBuffer[i] & (0xFF >> divider);   // Apply a logical & against a mask of the last bits
@@ -49,6 +50,8 @@ void base64Encode(unsigned char *inputBuffer, unsigned char *b64Buffer, size_t i
     // Add the remaining data from the tmpByte
     b64Buffer[bufIndex] = encodingTable[tmpByte <<= divider];
 
+    // Add padding chars as required
+    // -------------------------------------------------------------------------
     while (bufIndex < b64BufferLength) {
         b64Buffer[++bufIndex] = '=';
     }
