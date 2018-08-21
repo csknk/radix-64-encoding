@@ -1,7 +1,7 @@
 #include "base64.h"
 #include "radix64Chars.h"
 
-void base64Encode(unsigned char *inputBuffer, unsigned char *b64Buffer, size_t inputLength)
+void base64Encode(unsigned char const *inputBuffer, unsigned char *b64Buffer, size_t inputLength)
 {
     size_t b64BufferLength = lenCharsBase64(inputLength);
     printf("This function should output %lu base 64 characters.\n", b64BufferLength);
@@ -9,12 +9,12 @@ void base64Encode(unsigned char *inputBuffer, unsigned char *b64Buffer, size_t i
     // The first character: mpByte brings data forward to the while loop,
     // lookupVal gets the first 6 bits of this byte to buuild the first b64 char
     // -------------------------------------------------------------------------
-    unsigned char tmpByte;
-    tmpByte = 0;
-    tmpByte = (inputBuffer[0]) & (0xFF >> 6);                   // Mask against 00000011
-    size_t lookupVal = (inputBuffer[0] >>= 2) & (0xFF >> 2);    // Mask against 00111111
-    b64Buffer[0] = encodingTable[lookupVal];                    // Get the b64 character
-    size_t divider = 4;                                         // First run: set the divider for next char
+    unsigned char tmpByte = 0;
+    tmpByte = inputBuffer[0] & (0xFF >> 6);                 // Mask against 00000011
+    unsigned char mask = ~(0xFF >> 6);                      // Mask is 11111100
+    unsigned char lookupVal = (inputBuffer[0] & mask) >> 2; // After getting the first 6 bits, shift them
+    b64Buffer[0] = encodingTable[lookupVal];                // Get the b64 character
+    size_t divider = 4;                                     // First run: set the divider for next char
 
     // Loop to the penultimate character (assuming last char is a newline)
     // The last 2 bits of tmpByte is the last 2 bits of the first char

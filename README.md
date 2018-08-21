@@ -1,10 +1,14 @@
 Radix 64 Encoding in C
 ======================
-Radix 64 or base 64 is a binary-to-text encoding system that is designed to allow binary data to be represented in ASCII string format.
+Radix 64 or base 64 is a binary-to-text encoding system that is designed to allow binary data to be represented in ASCII string format. This is an educational project accepts a string from a user and Radix 64 encodes it.
+
+What is Radix 64 Encoding?
+--------------------------
+Radix 64 encoding allows binary data stored in octets (i.e. bytes) to be expressed as printable characters.
 
 Radix-64 characters require the binary input to be split into blocks of 6. These numbers (which all range from 0 - 63) are then mapped onto a character set of printable characters.
 
-Generally the Radix 64 characterset includes:
+The Radix 64 characterset includes:
 * A-Z
 * a-z
 * 0-9
@@ -12,6 +16,18 @@ Generally the Radix 64 characterset includes:
 
 This amounts to a total of 64 symbols. To encode binary data into Radix 64, data is parsed in 6-bit blocks (i.e. such that each block has a maximum value of 64), and the number represented by each 6-bit block is used to look up a Radix 64 character.
 
+Number of Output Bytes
+----------------------
+Radix 64 encoding results in 33% more bytes - every 3 input bytes is converted to 4 output.
+
+Given `n` input bytes, the output will be:
+
+`4⌈n/3⌉`
+
+The ceiling brackets `⌈x⌉` mean round the number to the upper integer. In words,, this expression would be: "n divided by 3, rounded up to the next whole number and then multiplied by 4".
+
+Example: PGP Messages
+---------------------
 A good example is the [ascii-armor][3] output from PGP:
 
 ~~~
@@ -26,8 +42,8 @@ Note that the encrypted message consists of Radix 64 characters exclusively, wit
 
 By definition, each byte of the original ciphertext was a number from 0-255. Some of these numbers do not map to printable ASCII characters. Encoding the message as Radix 64 allows the message to be printed and/or sent as an email or text message - modes of communication which do not allow the transfer of binary data.
 
-Radix 64 Alphabet
------------------
+The Radix 64 Alphabet
+---------------------
 ~~~
 Index R64 value  Index R64 value  Index R64 value  Index R64 value
 0     A          17    R          34    i          51   z
@@ -61,25 +77,126 @@ This example will encode the string 'david' into Radix 64.
 * The last sextuplet will have 2 bits of padding. When this is the case, '=' padding character is added.
 
 ~~~
-char:           | 'd' | 'a' | 'v' | 'i' | 'd' |
-binary:         | 011001 00  | 0110 0001  | 01 110110  | 011010 01  | 0110 0100  |
-6 bit groups:   | 011001 | 000110 | 000101 | 110110 | 011010 | 010110 | 0100   | 00 |
-Decimal output: | 25     | 6      | 5      | 54     | 26     | 22     | 16     | padding |
-Radix-64 chars  | Z      | G      | F      | 2      | a      | W      | Q      | = |
+                +-----------+-----------+-----------+-----------+-----------+
+char:           | 'd'       | 'a'       | 'v'       | 'i'       | 'd'       |
+                +-----------+-----------+-----------+-----------+-----------+
+binary:         | 011001 00 | 0110 0001 | 01 110110 | 011010 01 | 0110 0100 |
+                |                                                           |
+6 bit groups:   | 011001 | 000110 | 000101 | 110110 | 011010 | 010110 | 0100  | 00  |
+Decimal output: | 25     | 6      | 5      | 54     | 26     | 22     | 16    |     |
+                +--------+--------+--------+--------+--------+--------+-------+-----+
+Radix-64 chars  | Z      | G      | F      | 2      | a      | W      | Q     | =   |
+                +--------+--------+--------+--------+--------+--------+-------+-----+
 ~~~
 
-Another way to look at the problem. The string 'david' is represented by these bits:
-`0110010001100001011101100110100101100100`
+Radix 64 Encoding in C
+----------------------
+The encoding takes place in the function `void base64Encode(unsigned char *inputBuffer, unsigned char *b64Buffer, size_t inputLength)`, in `base64.c`.
 
-Split into groups of 6:
+The function receives:
+* The input buffer `inputBuffer` - which is a pointer to a character array (a c-style string) that contains the user input
+* The output buffer `b64Buffer` - a pointer to a dynamically allocated section of memory, sufficient to contain the Radix 64 encoded output
 
-Size = 8 * 5 = 40
-40/6 = 6 remainder 4 therefore 7 sextuplets (and therefore radix 64 characters) are needed.
+For the first character, the function:
+* Takes the first 6 bits, looks up the value against the Radix 64 encoding and assigns the correct ASCII character to `b64Buffer[0]`
+* A temporary byte is then created wich stores the data from the unused bits (i.e. the least significant 2 bits from the first char is stored as the most significant 2 bits in `tmpByte`)
+* A `size_t divider` variable is set - this will determine the number of bits to take from the next char - these will be combined with the bits in `tmpByte` to form the next Radix 64 6-bit group
 
-By convention,
 
-Decoding
---------
+### Bitwise Operations
+Bitwise operators allow for bit-by-bit manipulation of data stored in individual bytes.
+
+In our case, we make use of bit-masking to collect bits from specific positions within a byte:
+
+~~~c
+// base64.c
+// Handling the first char
+// ----------------------
+// tmpByte will carry unused bits forward
+unsigned char tmpByte = 0;
+
+// We need last 2 bits, so mask against 00000011
+tmpByte = inputBuffer[0] & (0xFF >> 6);
+
+// Mask is 11111100 - note usefulness of the complement operator!
+unsigned char mask = ~(0xFF >> 6);
+
+// After getting the first 6 bits, shift them
+unsigned char lookupVal = (inputBuffer[0] & mask) >> 2;
+
+// Get the b64 character
+b64Buffer[0] = encodingTable[lookupVal];
+
+// First run: set the divider for next char
+size_t divider = 4;
+~~~
+
+Originally I gathered the first 6 bits like this:
+~~~c
+size_t lookupVal = (inputBuffer[0] >>= 2) & (0xFF >> 2);
+~~~
+
+...which bit shifts the original char (i.e. `inputBuffer[0]`) two places to the right before masking against `00111111`. This does collect the correct data for the Radix 64 lookup index - but it has the unwanted side-effect of mutating the original char - which meant that the function signature could not declare `inputBuffer` as `const`.
+
+Next, the function loops through the characters. During each iteration:
+
+* The correct bits are used to determine the next radix 64 character
+* Excess bits are stored in `tmpByte` to be carried forward if necessary
+* The `divider` is set such that the correct number of bits are collected when advancing
+
+~~~c
+// Loop to the penultimate character (assuming last char is a newline)
+// The last 2 bits of tmpByte is the last 2 bits of the first char
+// -------------------------------------------------------------------------
+size_t i = 1;
+size_t bufIndex = 1;
+while (i < inputLength) {
+    // Shift bits from previous iteration to the correct position
+    tmpByte <<= divider;
+
+    // Mask representing the first `divider` bits of a byte
+    unsigned char mask = ~(0xFF >> divider);
+
+    // Collect the first `divider` bits of the current char
+    unsigned char mostSigBits = inputBuffer[i] & mask;
+
+    // Shift to correct position
+    mostSigBits >>= (8 - divider);
+
+    // Add combined bytes to the return buffer
+    b64Buffer[bufIndex] = encodingTable[tmpByte ^ mostSigBits];
+    bufIndex++;
+
+    // If the divider == 2, the rest of this byte shoudl form the next radix 64 char.
+    // Set the last 6 bits of this char as a new radix 64 character
+    // ---------------------------------------------------------------------
+    if (divider == 2) {
+        b64Buffer[bufIndex] = encodingTable[(inputBuffer[i] & (0xFF >> divider))];
+        bufIndex++;
+        // In this case, there is no data to carry forward
+        tmpByte = 0;
+    } else {
+        // Carry forward the unused bits from the current character
+        // Apply a logical & against a mask of the last bits
+        tmpByte = inputBuffer[i] & (0xFF >> divider);
+    }
+
+    // Set divider for the next char
+    // ---------------------------------------------------------------------
+    divider = (divider - 2) ? divider - 2 : 6;
+    i++;
+}
+// Add the remaining data from the tmpByte
+b64Buffer[bufIndex] = encodingTable[tmpByte <<= divider];
+~~~
+
+The divider is set `divider = (divider - 2) ? divider - 2 : 6;`:
+* If the current divider is 2, set divider to 6 (because no data is carried forward from the current character)
+* If the divider is not 2, set the divider to divider - 2:
+  - Current divider is 4, 4 bits carried forward, new divider is 2
+
+Notes on Decoding
+-----------------
 To decode radix 64 encoded text, typically four characters are converted to three bytes. If the string contains a single padding character (i.e. '=') the last four characters (including the padding character) will decode to only two bytes, while '==' indicates that the four characters will decode to only a single byte. From [RFC 1521][2]:
 
 >Since all base64 input is an integral number of octets, only the following cases can arise:
