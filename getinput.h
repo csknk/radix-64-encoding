@@ -10,3 +10,4 @@ enum returnVals {
 };
 int getLine (char *prompt, char *buff, size_t maxInputLength);
 int getInput(char *userInputBuffer, size_t length);
+void getDynamicInput(char **inputBuffer);

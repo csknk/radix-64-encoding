@@ -2,25 +2,24 @@
 #include <stdlib.h>
 #include "getinput.h"
 #include "base64.h"
+#include "utilities.h"
 
 int main(void)
 {
-    // Get string from user
-    // -------------------------------------------------------------------------
-    char userInputBuffer[32]; // Max of 32 chars
-    getInput(userInputBuffer, 32);
+//	char *hexstring = "deadbeef";
 
-    // Allocate memory
-    // @NB: strlen may not be appropriate for other types of input (e.g. binary data)
-    // -------------------------------------------------------------------------
-    size_t minReq = ((strlen(userInputBuffer) + 3 - 1) / 3) * 4;
-    size_t b64BufferLength = !(minReq % 4) ? minReq : (((minReq / 4) + 1) * 4);
-    unsigned char *b64Buffer = malloc(b64BufferLength);
+	char *hexstring = NULL;
+	getDynamicInput(&hexstring);
 
-    // Base 64 Encode
-    // -------------------------------------------------------------------------
-    base64Encode((unsigned char *)userInputBuffer, b64Buffer, strlen(userInputBuffer));
-    printf("base64 encoded:\t%s\n", b64Buffer);
+	unsigned char *bytes = NULL;
+	size_t nBytes = hexstringToBytes(hexstring, &bytes);
+	free(hexstring);
 
-    return 0;
+	unsigned char *b64Buffer = NULL; //malloc(b64BufferLength * sizeof(*b64Buffer));
+	base64Encode(bytes, &b64Buffer, nBytes); 
+	free(bytes);
+	printf("base64 encoded:\t%s\n", b64Buffer);
+	free(b64Buffer);
+
+	return 0;
 }

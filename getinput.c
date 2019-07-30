@@ -1,5 +1,14 @@
 #include "getinput.h"
 
+void getDynamicInput(char **userInputBuffer)
+{
+	ssize_t charsRead = 0;
+	size_t len = 0;
+	charsRead = getline(userInputBuffer, &len, stdin);
+	size_t pos = strcspn(*userInputBuffer, "\n");
+	*(*userInputBuffer + pos) = 0;
+}
+
 int getInput(char *userInputBuffer, size_t length)
 {
     int rc;
