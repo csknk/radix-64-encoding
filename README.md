@@ -8,23 +8,25 @@ Radix 64 encoding allows binary data stored in octets (i.e. bytes) to be express
 
 Radix-64 characters require the binary input to be split into blocks of 6. These numbers (which all range from 0 - 63) are then mapped onto a character set of printable characters.
 
-The Radix 64 characterset includes:
+The Radix 64 character set includes:
 * A-Z
 * a-z
 * 0-9
 * The additional characters '+' and '/'
 
-This amounts to a total of 64 symbols. To encode binary data into Radix 64, data is parsed in 6-bit blocks (i.e. such that each block has a maximum value of 64), and the number represented by each 6-bit block is used to look up a Radix 64 character.
+This amounts to a total of 64 symbols.
+
+To encode binary data into Radix 64, data is parsed in 6-bit blocks (i.e. such that each block has a maximum value of 64), and the number represented by each 6-bit block is used to look up a Radix 64 character.
 
 Number of Output Bytes
 ----------------------
-Radix 64 encoding results in 33% more bytes - every 3 input bytes is converted to 4 output.
+Radix 64 encoding results in 33% more bytes - every 3 input bytes is converted to 4 output bytes.
 
 Given `n` input bytes, the output will be:
 
 `4⌈n/3⌉`
 
-The ceiling brackets `⌈x⌉` mean round the number to the upper integer. In words,, this expression would be: "n divided by 3, rounded up to the next whole number and then multiplied by 4".
+The ceiling brackets `⌈x⌉` mean round the number to the upper integer. In other words, "n divided by 3, rounded up to the next whole number and then multiplied by 4".
 
 Example: PGP Messages
 ---------------------
