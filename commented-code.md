@@ -12,7 +12,7 @@ void base64Encode(unsigned char const *inputBuffer, unsigned char *b64Buffer, si
     size_t b64BufferLength = lenCharsBase64(inputLength);
     printf("This function should output %lu base 64 characters.\n", b64BufferLength);
 
-    // The first character: mpByte brings data forward to the while loop,
+    // The first character: tmpByte brings data forward to the while loop,
     // lookupVal gets the first 6 bits of this byte to buuild the first b64 char
     // -------------------------------------------------------------------------
     unsigned char tmpByte = 0;
